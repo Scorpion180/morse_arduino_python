@@ -1,15 +1,11 @@
-import serial, threading
+import serial,threading
 
-def leerArduinoSonido():
-    while True:
+def leerArduinoSonido(running):
+    while running.is_set():
         cadenaMorse = arduino.readline()
         print(cadenaMorse)
         filtro.append(cadenaMorse)
-        global inputUsuario
-        if(not inputUsuario):
-            break
 
-inputUsuario = True
 programaEjecutandose = True
 modoEscuchaSonido = '7'
 arduino = serial.Serial('/dev/ttyUSB0', 9600)
@@ -70,21 +66,21 @@ def sonido():
             #pendiente emitir la cadena
 
         elif(opcion == 2):
-            print('presiona 1 para salir del modo escucha\n')
+            print('presiona ENTER para salir del modo escucha\n')
             estadoReciviendo = True
             arduino.write(modoEscuchaSonido)
             while True:
                 a = arduino.readline()[:1]
                 if(a == '1'):
                     break
-            t1 = threading.Thread(target = leerArduinoSonido) 
-            t1.start()
+            running.set()
+            thread = threading.Thread(target=leerArduinoSonido, args=(running,))
+            thread.start()
             while True:
-                raw_input()
-                inputUsuario = False
+                raw_input() #Cuando se presione enter se para
+                running.clear()
+                thread.join()
                 break
-            t1.join()
-
             print(cadenaMorse)
             analizarSonido(cadenaMorse)
     except ValueError:
@@ -96,6 +92,7 @@ def luz():
     pass
 
 while programaEjecutandose:
+    running = threading.Event()
     #print(arduino.readline());
     imprimeMenu()
     try:
@@ -109,5 +106,4 @@ while programaEjecutandose:
 
     except ValueError:
         print('Valor no valido')
-arduino.write(raw_input() + "\n")
-
+#arduino.write(raw_input() + "\n")
